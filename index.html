@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vikey Reservations Viewer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -106,6 +107,8 @@
       margin-top: 1.5rem;
     }
 
+
+
     /* Responsive without changing table layout */
     @media (max-width: 768px) {
         .container {
@@ -131,6 +134,7 @@
     }
 
 
+
   </style>
 </head>
 <body>
@@ -138,6 +142,7 @@
     <h1>📆 Vikey - Prenotazioni</h1>
     <div class="controls">
       <input type="date" id="dateInput" />
+      <button id="downloadBtn">Scarica Tabella</button>
       <!-- <button onclick="getReservations()">Carica Prenotazioni</button> -->
     </div>
     <div id="output">Seleziona una data per visualizzare le prenotazioni.</div>
@@ -266,7 +271,7 @@
     }
     }
 
-    html += singleGuests.join('') + groupedGuests.join('');
+        html += singleGuests.join('') + groupedGuests.join('');
 
 
         html += `</tbody></table>`;
@@ -277,6 +282,41 @@
         output.textContent = "❌ Errore durante il caricamento: " + err.message;
       }
     }
+
+    document.getElementById("downloadBtn").addEventListener("click", async () => {
+    const output = document.getElementById("output");
+
+    // Temporaneamente forza il layout come "desktop"
+    const originalWidth = output.style.width;
+    const originalFontSize = output.style.fontSize;
+    const originalTransform = output.style.transform;
+
+    // Imposta uno stile più largo per catturare la tabella bene
+    output.style.width = "800px";
+    output.style.fontSize = "1rem";
+    output.style.transform = "scale(1)";
+    output.style.padding = "20px";
+    output.style.margin = "0 auto";
+    
+    // Usa html2canvas con scaling per miglior qualità
+    const canvas = await html2canvas(output, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        windowWidth: 1300 // forza larghezza viewport virtuale
+    });
+
+    // Ripristina gli stili originali
+    output.style.width = originalWidth;
+    output.style.fontSize = originalFontSize;
+    output.style.transform = originalTransform;
+
+    const link = document.createElement("a");
+    const selectedDate = document.getElementById("dateInput").value;
+    link.download = `prenotazioni_${selectedDate}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+    });
+
   </script>
 </body>
 </html>
