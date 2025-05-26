@@ -108,17 +108,26 @@
 
     /* Responsive without changing table layout */
     @media (max-width: 768px) {
-      .container {
-        padding: 1rem;
-      }
+        .container {
+            padding: 1rem;
+        }
 
-      table {
-        font-size: 0.85rem;
-      }
+        table {
+            font-size: 0.75rem;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
 
-      th, td {
-        padding: 0.5rem;
-      }
+        th, td {
+            padding: 0.4rem;
+        }
+
+        th {
+            font-size: 0.8rem;
+        }
+        td {
+        word-break: break-word;
+        }
     }
 
 
