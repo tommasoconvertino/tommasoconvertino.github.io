@@ -366,7 +366,7 @@ html += `</tbody></table>`;
 
     const link = document.createElement("a");
     const selectedDate = document.getElementById("dateInput").value;
-    link.download = `prenotazioni_${selectedDate}.png`;
+    link.download = "prenotazioni.png";
     link.href = canvas.toDataURL();
     link.click();
     });
