@@ -94,7 +94,7 @@
     }
 
     .group-row td {
-      text-align: left !important;
+      /* text-align: left !important; */
       padding-left: 1rem;
     }
 
@@ -107,6 +107,10 @@
       margin-top: 1.5rem;
     }
 
+    .orange-alert {
+      background-color: #fff2e0 !important;
+      font-weight: bold;
+    }
 
 
     /* Responsive without changing table layout */
@@ -142,6 +146,7 @@
     <h1>📆 Vikey - Prenotazioni</h1>
     <div class="controls">
       <input type="date" id="dateInput" />
+
       <button id="downloadBtn">Scarica Tabella</button>
       <!-- <button onclick="getReservations()">Carica Prenotazioni</button> -->
     </div>
@@ -158,6 +163,23 @@
       
       getReservations();
     });
+
+
+    function formatRoomName(name) {
+  const customNames = {
+    "Bottalico 44": "City Suite"
+    // Add more if needed
+  };
+
+  if (name in customNames) return customNames[name];
+
+  if (name.startsWith("Stanza") && name.length > 4) {
+    return name.slice(0, -4);
+  }
+
+  return name;
+}
+
 
     async function getReservations() {
       const output = document.getElementById("output");
@@ -183,7 +205,7 @@
         })(selectedDate);
 
       try {
-        const response = await fetch(`https://vikeyserver.onrender.com/reservations?last_updated=${apiDate}`);
+        const response = await fetch(`https://vikeyserver.onrender.com/reservations?last_updated=2025-01-01`);
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const result = await response.json();
 
@@ -201,7 +223,9 @@
               room: res.local_name,
               guest: res.guest_name || res.name || "—",
               numGuests: res.guests_num || 0,
-              lang: res.lang === "it" ? "Italiani" : `Stranieri - ${res.lang || "??"}`,
+              lang: res.lang === "it"
+                ? "Italiani"
+                : `Stranieri - ${res.lang ? res.lang.charAt(0).toUpperCase() + res.lang.slice(1) : "??"}`,
               stayDays,
               checkInDate: checkIn,
               del: res.DEL
@@ -243,7 +267,7 @@
         const r = group[0];
         singleGuests.push(`
         <tr>
-            <td>${r.room}</td>
+            <td>${formatRoomName(r.room)}</td>
             <td>${r.guest}</td>
             <td>${r.numGuests}</td>
             <td>${r.lang}</td>
@@ -259,7 +283,7 @@
         group.forEach(r => {
         groupHTML += `
             <tr class="subtable">
-            <td>${r.room}</td>
+            <td>${formatRoomName(r.room)}</td>
             <td></td>
             <td>${r.numGuests}</td>
             <td>${r.lang}</td>
@@ -273,8 +297,38 @@
 
         html += singleGuests.join('') + groupedGuests.join('');
 
+        // Step 1: Create a map of rooms checked in today
+const checkInRooms = new Set(reservations.map(r => r.room));
 
-        html += `</tbody></table>`;
+// Step 2: Get all rooms that checked out on the selected date
+const checkoutRooms = result.data.reservations
+  .filter(res => {
+    const checkout = `${res.checkout_year}-${String(res.checkout_month).padStart(2, '0')}-${String(res.checkout_day).padStart(2, '0')}`;
+    return checkout === selectedDate && res.DEL === 0;
+  })
+  .map(res => res.local_name);
+
+// Step 3: Filter to get rooms that checked out but did not check in
+const redRooms = checkoutRooms.filter(room => !checkInRooms.has(room));
+
+// Step 4: Remove duplicates (if any)
+const uniqueRedRooms = [...new Set(redRooms)];
+
+// Step 5: Add red section if there are such rooms
+if (redRooms.length > 0) {
+  // html += `<tr><td colspan="5" style="background-color:#ffe9cc; font-weight:bold;">🛑 Checkout senza nuovo check-in:</td></tr>`;
+  redRooms.forEach(room => {
+    html += `
+    <tr >
+      <td class="orange-alert">${formatRoomName(room)}</td>
+      <td class="orange-alert" colspan="4">DA RIFARE</td>
+      </tr>
+    `;
+  });
+}
+
+
+html += `</tbody></table>`;
         output.innerHTML = html;
 
       } catch (err) {
