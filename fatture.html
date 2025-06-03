@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vikey Reservations Viewer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8f9fa;
+    }
+    summary {
+      cursor: pointer;
+    }
+    .copy-btn {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    details[open] summary::after {
+      content: "▲";
+      float: right;
+    }
+    summary::after {
+      content: "▼";
+      float: right;
+    }
+    table td, table th {
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="card-title text-center mb-4">📆 Vikey - Prenotazioni</h1>
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-4">
+          <button id="prevDayBtn" class="btn btn-primary">&lt; Giorno Prima</button>
+          <input type="date" id="dateInput" class="form-control" style="max-width: 200px;" />
+          <button id="nextDayBtn" class="btn btn-primary">Giorno Dopo &gt;</button>
+        </div>
+        <div id="output" class="text-center">Seleziona una data per visualizzare le prenotazioni.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // JS SCRIPT REMAINS UNCHANGED EXCEPT FOR UI-RELATED OUTPUT UPDATES BELOW
+    let currentAbortController = null;
+
+    const countryMap = {
+      100000301: "AFGHANISTAN",
+      100000201: "ALBANIA",
+      100000401: "ALGERIA",
+      100000202: "ANDORRA",
+      100000402: "ANGOLA",
+      100000733: "ANGUILLA (ISOLA)",
+      100000503: "ANTIGUA E BARBUDA",
+      100000999: "APOLIDE",
+      100000302: "ARABIA SAUDITA",
+      100000602: "ARGENTINA",
+      100000358: "ARMENIA",
+      100000701: "AUSTRALIA",
+      100000203: "AUSTRIA",
+      100000359: "AZERBAIGIAN",
+      100000505: "BAHAMAS",
+      100000304: "BAHREIN",
+      100000305: "BANGLADESH",
+      100000506: "BARBADOS",
+      100000206: "BELGIO",
+      100000507: "BELIZE",
+      100000406: "BENIN",
+      100000739: "BERMUDE",
+      100000306: "BHUTAN",
+      100000256: "BIELORUSSIA",
+      100000604: "BOLIVIA",
+      100000740: "BOPHUTHATSWANA",
+      100000252: "BOSNIA ED ERZEGOVINA",
+      100000408: "BOTSWANA",
+      100000605: "BRASILE",
+      100000309: "BRUNEI DARUSSALAM",
+      100000209: "BULGARIA",
+      100000409: "BURKINA FASO",
+      100000410: "BURUNDI",
+      100000310: "CAMBOGIA",
+      100000411: "CAMERUN",
+      100000509: "CANADA",
+      100000413: "CAPO VERDE",
+      100000742: "CAYMAN (ISOLE)",
+      100000210: "CECOSLOVACCHIA",
+      100000743: "CHRISTMAS",
+      100000415: "CIAD",
+      100000606: "CILE",
+      100000314: "CINA",
+      100000315: "CIPRO",
+      100000746: "COCOS",
+      100000608: "COLOMBIA",
+      100000417: "COMORE",
+      100000418: "CONGO",
+      100000319: "COREA DEL NORD",
+      100000320: "COREA DEL SUD",
+      100000404: "COSTA D'AVORIO",
+      100000513: "COSTA RICA",
+      100000250: "CROAZIA",
+      100000514: "CUBA",
+      100000212: "DANIMARCA",
+      100000515: "DOMINICA",
+      100000609: "ECUADOR",
+      100000419: "EGITTO",
+      100000517: "EL SALVADOR",
+      100000322: "EMIRATI ARABI UNITI",
+      100000466: "ERITREA",
+      100000247: "ESTONIA",
+      100000420: "ETIOPIA",
+      100000755: "FAER OER",
+      100000245: "FEDERAZIONE RUSSA",
+      100000703: "FIGI",
+      100000323: "FILIPPINE",
+      100000214: "FINLANDIA",
+      100000215: "FRANCIA",
+      100000421: "GABON",
+      100000422: "GAMBIA",
+      100000360: "GEORGIA",
+      110000022: "GEORGIA SUD E ISOLE SANDWICH AUSTRALI",
+      100000216: "GERMANIA",
+      100000423: "GHANA",
+      100000518: "GIAMAICA",
+      100000326: "GIAPPONE",
+      100000424: "GIBUTI",
+      100000327: "GIORDANIA",
+      100000220: "GRECIA",
+      100000519: "GRENADA",
+      100000758: "GROENLANDIA",
+      100000759: "GUADALUPA",
+      100000760: "GUAM",
+      100000523: "GUATEMALA",
+      100000761: "GUAYANA FRANCESE",
+      110000014: "GUERNSEY",
+      100000425: "GUINEA",
+      100000426: "GUINEA BISSAU",
+      100000427: "GUINEA EQUATORIALE",
+      100000612: "GUYANA",
+      100000524: "HAITI",
+      100000525: "HONDURAS",
+      110000005: "HONG KONG",
+      100000330: "INDIA",
+      100000331: "INDONESIA",
+      100000332: "IRAN",
+      100000333: "IRAQ",
+      100000221: "IRLANDA",
+      100000223: "ISLANDA",
+      100000764: "ISOLE VERGINI",
+      100000334: "ISRAELE",
+      100000100: "ITALIA",
+      100000356: "KAZAKISTAN",
+      100000428: "KENYA",
+      100000361: "KIRGHIZISTAN",
+      100000708: "KIRIBATI",
+      100001002: "KOSOVO",
+      100000335: "KUWAIT",
+      100000765: "LA REUNION",
+      100000336: "LAOS",
+      100000429: "LESOTHO",
+      100000248: "LETTONIA",
+      100000337: "LIBANO",
+      100000430: "LIBERIA",
+      100000431: "LIBIA",
+      100000225: "LIECHTENSTEIN",
+      100000249: "LITUANIA",
+      100000226: "LUSSEMBURGO",
+      110000003: "MACAO",
+      100000253: "MACEDONIA",
+      100000997: "MACEDONIA DEL NORD",
+      100000432: "MADAGASCAR",
+      100000434: "MALAWI",
+      100000767: "MALAYSIA",
+      100000339: "MALDIVE",
+      100000435: "MALI",
+      100000227: "MALTA",
+      100000768: "MALVINE",
+      100000769: "MAN",
+      100000436: "MAROCCO",
+      100000772: "MARSHALL",
+      100000773: "MARTINICA",
+      100000437: "MAURITANIA",
+      100000438: "MAURIZIO",
+      100000774: "MAYOTTE",
+      100000527: "MESSICO",
+      100000775: "MICRONESIA STATI FEDERALI",
+      100000254: "MOLDAVIA",
+      100000229: "MONACO",
+      100000341: "MONGOLIA",
+      100001001: "MONTENEGRO",
+      100000777: "MONTSERRAT",
+      100000440: "MOZAMBICO",
+      100000307: "MYANMAR-BIRMANIA",
+      100000441: "NAMIBIA",
+      100000715: "NAURU",
+      100000342: "NEPAL",
+      100000529: "NICARAGUA",
+      100000442: "NIGER",
+      100000443: "NIGERIA",
+      100000778: "NORFOLK",
+      100000231: "NORVEGIA",
+      100000780: "NUOVA CALEDONIA",
+      100000719: "NUOVA ZELANDA",
+      100000343: "OMAN",
+      100000232: "PAESI BASSI",
+      100000344: "PAKISTAN",
+      100000783: "PALAU REPUBBLICA",
+      110000001: "PALESTINA",
+      100000530: "PANAMA",
+      100000721: "PAPUASIA-N.GUINEA",
+      100000614: "PARAGUAY",
+      100000615: "PERU'",
+      100000786: "PITCAIRN",
+      100000787: "POLINESIA",
+      100000233: "POLONIA",
+      100000234: "PORTOGALLO",
+      100000790: "PUERTO RICO",
+      100000345: "QATAR",
+      100000219: "REGNO UNITO",
+      100000257: "REPUBBLICA CECA",
+      100000414: "REPUBBLICA CENTRAFRICANA",
+      100000998: "REPUBBLICA DEMOCRATICA DEL CONGO",
+      100000516: "REPUBBLICA DOMINICANA",
+      100000255: "REPUBBLICA SLOVACCA",
+      100000235: "ROMANIA",
+      100000446: "RUANDA",
+      100000534: "S. CHRISTOPHER E NEVIS",
+      100000533: "S. VINCENT E GRENADINE",
+      100000795: "SAHARA SPAGNOLO",
+      100000532: "SAINT LUCIA",
+      100000796: "SAINT PIERRE ET MIQUELON",
+      100000797: "SAINT VINCENT E GRENADINE",
+      100000725: "SALOMONE",
+      100000727: "SAMOA",
+      100000798: "SAMOA AMERICANE",
+      100000236: "SAN MARINO",
+      100000799: "SANT ELENA",
+      100000448: "SAO TOME' E PRINCIPE",
+      100000450: "SENEGAL",
+      100001000: "SERBIA",
+      100000449: "SEYCHELLES",
+      100000451: "SIERRA LEONE",
+      100000346: "SINGAPORE",
+      100000348: "SIRIA",
+      100000251: "SLOVENIA",
+      100000453: "SOMALIA",
+      100000239: "SPAGNA",
+      100000311: "SRI LANKA (CEYLON)",
+      100000536: "STATI UNITI D'AMERICA",
+      100000246: "STATO DELLA CITTA' DEL VATICANO",
+      100000467: "SUD SUDAN",
+      100000454: "SUDAFRICA",
+      100000455: "SUDAN",
+      100000616: "SURINAME",
+      100000240: "SVEZIA",
+      100000241: "SVIZZERA",
+      100000456: "SWAZILAND",
+      100000362: "TAGIKISTAN",
+      100000363: "TAIWAN",
+      100000457: "TANZANIA",
+      100000349: "THAILANDIA",
+      100000805: "TIMOR",
+      100000458: "TOGO",
+      100000806: "TOKELAU",
+      100000730: "TONGA",
+      100000617: "TRINIDAD E TOBAGO",
+      100000460: "TUNISIA",
+      100000351: "TURCHIA",
+      100000364: "TURKMENISTAN",
+      100000810: "TURKS",
+      100000731: "TUVALU",
+      100000243: "UCRAINA",
+      100000461: "UGANDA",
+      100000244: "UNGHERIA",
+      100000618: "URUGUAY",
+      100000357: "UZBEKISTAN",
+      100000732: "VANUATU",
+      100000619: "VENEZUELA",
+      100000812: "VERGINI BRITANNICHE (ISOLE)",
+      100000353: "VIETNAM",
+      100000815: "WALLIS",
+      100000354: "YEMEN",
+      100000464: "ZAMBIA",
+      100000465: "ZIMBABWE"
+    };
+
+    const detailsFields = [
+      { label: "Nome", key: "invdata_name" },
+      { label: "Partita IVA/CF", key: "invdata_vat" },
+      { label: "Passaporto", key: "invdata_passport" },
+      { label: "PEC", key: "invdata_pec" },
+      { label: "Email", key: "guest_filled_mail" },
+      { label: "SDI", key: "invdata_sid" },
+      { label: "Paese", key: "invdata_country" },
+      { label: "Provincia", key: "invdata_province" },
+      { label: "Città", key: "invdata_city" },
+      { label: "CAP", key: "invdata_zip" },
+      { label: "Indirizzo", key: "invdata_addr" },
+      { label: "Prezzo", key: "price" }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const romeTime = new Date().toLocaleString("en-US", { timeZone: "Europe/Rome" });
+      const today = new Date(romeTime);
+      const formatted = today.toISOString().split("T")[0];
+      const dateInput = document.getElementById("dateInput");
+      dateInput.value = formatted;
+
+      dateInput.addEventListener("change", getReservations);
+
+      document.getElementById("prevDayBtn").addEventListener("click", () => changeDay(-1));
+      document.getElementById("nextDayBtn").addEventListener("click", () => changeDay(1));
+
+      getReservations();
+    });
+
+    function changeDay(offset) {
+      const dateInput = document.getElementById("dateInput");
+      const currentDate = new Date(dateInput.value);
+      currentDate.setDate(currentDate.getDate() + offset);
+      const newDateStr = currentDate.toISOString().split("T")[0];
+      dateInput.value = newDateStr;
+      getReservations();
+    }
+
+    function formatRoomName(name) {
+      const customNames = { "Bottalico 44": "City Suite" };
+      if (name in customNames) return customNames[name];
+      if (name.startsWith("Stanza") && name.length > 4) return name.slice(0, -4);
+      return name;
+    }
+
+    async function getReservations() {
+      if (currentAbortController) currentAbortController.abort();
+      currentAbortController = new AbortController();
+      const signal = currentAbortController.signal;
+
+      const output = document.getElementById("output");
+      output.innerHTML = "<div class='text-center py-3'><div class='spinner-border text-primary'></div> Caricamento...</div>";
+      const selectedDate = document.getElementById("dateInput").value;
+      if (!selectedDate) {
+        output.textContent = "❗ Seleziona una data.";
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://vikeyserver.onrender.com/reservations?last_updated=2025-01-01`, { signal });
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const result = await response.json();
+
+        const reservations = result.data.reservations.map(res => {
+          const checkIn = `${res.checkin_year}-${String(res.checkin_month).padStart(2, '0')}-${String(res.checkin_day).padStart(2, '0')}`;
+          const checkOut = `${res.checkout_year}-${String(res.checkout_month).padStart(2, '0')}-${String(res.checkout_day).padStart(2, '0')}`;
+          const stayDays = Math.floor((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
+
+          const formatVal = val => (val && val !== "0") ? val : "";
+
+          return {
+            room: res.local_name,
+            guest: res.guest_name || res.name || "—",
+            invdata_name: formatVal(res.invdata_name),
+            invdata_vat: formatVal(res.invdata_vat),
+            invdata_passport: formatVal(res.invdata_passport),
+            invdata_pec: formatVal(res.invdata_pec),
+            guest_filled_mail: formatVal(res.guest_filled_mail),
+            invdata_sid: formatVal(res.invdata_sid),
+            invdata_country: countryMap[res.invdata_country] || "INVALID",
+            invdata_province: formatVal(res.invdata_province),
+            invdata_city: formatVal(res.invdata_city),
+            invdata_zip: formatVal(res.invdata_zip),
+            invdata_addr: formatVal(res.invdata_addr),
+            price: res.price && res.price !== "0" ? res.price.toString().replace(/\./g, ",") : "",
+            checkInDate: checkIn,
+            del: res.DEL
+          };
+        }).filter(res => res.checkInDate === selectedDate && res.del === 0);
+
+        reservations.sort((a, b) => a.room.localeCompare(b.room));
+
+        if (reservations.length === 0) {
+          output.innerHTML = `<p class="text-center mt-3 text-muted">Nessuna prenotazione trovata per il ${selectedDate}</p>`;
+          return;
+        }
+
+        let html = `
+          <div class="table-responsive mt-4">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Appartamento</th>
+                  <th>Ospite</th>
+                </tr>
+              </thead>
+              <tbody>`;
+
+        for (const r of reservations) {
+          html += `
+            <tr>
+              <td>${formatRoomName(r.room)}</td>
+              <td>
+                <details>
+                  <summary class="fw-semibold">${r.guest}</summary>
+                  <div class="pt-2">
+                    ${detailsFields
+                      .filter(field => r[field.key] && r[field.key] !== "0")
+                      .map(field => `
+                        <div class="d-flex align-items-center mb-2">
+                          <strong class="me-2">${field.label}:</strong> 
+                          <span>${r[field.key]}</span>
+                          <button class="btn btn-sm btn-outline-primary copy-btn ms-2" data-copy="${r[field.key]}">Copy</button>
+                        </div>
+                      `).join('')}
+                  </div>
+                </details>
+              </td>
+            </tr>`;
+        }
+
+        html += `</tbody></table></div>`;
+        output.innerHTML = html;
+
+        function copyToClipboardFallback(text) {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.top = "-9999px";
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          let success = false;
+          try {
+            success = document.execCommand("copy");
+          } catch {
+            success = false;
+          }
+          document.body.removeChild(textarea);
+          return success;
+        }
+
+        document.querySelectorAll(".copy-btn").forEach(btn => {
+          btn.addEventListener("click", async (e) => {
+            const button = e.currentTarget;
+            const textToCopy = button.getAttribute("data-copy");
+
+            let success = false;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              try {
+                await navigator.clipboard.writeText(textToCopy);
+                success = true;
+              } catch {
+                success = copyToClipboardFallback(textToCopy);
+              }
+            } else {
+              success = copyToClipboardFallback(textToCopy);
+            }
+
+            const originalText = button.textContent;
+            button.textContent = success ? "Copied!" : "Error";
+            setTimeout(() => {
+              button.textContent = originalText;
+            }, 1500);
+          });
+        });
+
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error("Error loading reservations:", err);
+        output.innerHTML = `<div class="alert alert-danger mt-3">❌ Errore durante il caricamento: ${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
